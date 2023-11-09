@@ -1,3 +1,5 @@
+#include <TimeOut.h>
+
 #define MOTOR_ONE_POSITIVE 2
 #define MOTOR_ONE_NEGATIVE 4
 #define MOTOR_ONE_SPEED 3
@@ -29,7 +31,14 @@ enum State {
   FIND_GOAL,
   GOTO_GOAL,
   KICK
-}
+};
+
+struct Motor motorOne;
+struct Motor motorTwo;
+struct Motor motorThree;
+
+TimeOut timeout0;
+enum State state;
 
 void setMotor(struct Motor motor, double speed) {
 
@@ -59,21 +68,16 @@ void enableSolenoid() {
 
 }
 
-void disableSolenoid(int pin) {
+void disableSolenoid() {
   digitalWrite(SOLENOID, 0);
+}
+
 void turnInDirection(struct Motor motors[NUM_MOTORS], double speed) {
   for (int i = 0; i < NUM_MOTORS; i++) {
     setMotor(motors[i], speed);
   }
 }
 
-
-struct Motor motorOne;
-struct Motor motorTwo;
-struct Motor motorThree;
-
-TimeOut timeout0;
-enum State state;
 
 void setup() {
   pinMode(MOTOR_ONE_POSITIVE, OUTPUT);
