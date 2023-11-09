@@ -23,6 +23,14 @@ struct Motor {
   double angle; // angle in radians, clockwise from the front
 };
 
+enum State {
+  FIND_BALL,
+  GOTO_BALL,
+  FIND_GOAL,
+  GOTO_GOAL,
+  KICK
+}
+
 void setMotor(struct Motor motor, double speed) {
 
   // Set the motor direction
@@ -53,6 +61,10 @@ void enableSolenoid() {
 
 void disableSolenoid(int pin) {
   digitalWrite(SOLENOID, 0);
+void turnInDirection(struct Motor motors[NUM_MOTORS], double speed) {
+  for (int i = 0; i < NUM_MOTORS; i++) {
+    setMotor(motors[i], speed);
+  }
 }
 
 
@@ -61,6 +73,7 @@ struct Motor motorTwo;
 struct Motor motorThree;
 
 TimeOut timeout0;
+enum State state;
 
 void setup() {
   pinMode(MOTOR_ONE_POSITIVE, OUTPUT);
@@ -78,17 +91,17 @@ void setup() {
   motorOne.positivePin = MOTOR_ONE_POSITIVE;
   motorOne.negativePin = MOTOR_ONE_NEGATIVE;
   motorOne.speedPin = MOTOR_ONE_SPEED;
-  motorOne.angle = TWO_PI/3;
+  motorOne.angle = PI/6;
 
   motorTwo.positivePin = MOTOR_TWO_POSITIVE;
   motorTwo.negativePin = MOTOR_TWO_NEGATIVE;
   motorTwo.speedPin = MOTOR_TWO_SPEED;
-  motorTwo.angle = TWO_PI/3 * 2;
+  motorTwo.angle = PI;
 
   motorThree.positivePin = MOTOR_THREE_POSITIVE;
   motorThree.negativePin = MOTOR_THREE_NEGATIVE;
   motorThree.speedPin = MOTOR_THREE_SPEED;
-  motorThree.angle = TWO_PI;
+  motorThree.angle = -PI/6;
 }
 
 void loop() {
@@ -99,5 +112,24 @@ void loop() {
   motors[1] = motorTwo;
   motors[2] = motorThree;
 
+  switch (state) {
+    case FIND_BALL:
+      break;
 
+    case GOTO_BALL:
+      break;
+
+    case FIND_GOAL:
+      break;
+
+    case GOTO_GOAL:
+      break;
+
+    case KICK:
+      enableSolenoid();
+      break;
+
+    default:
+      break;
+  }
 }
