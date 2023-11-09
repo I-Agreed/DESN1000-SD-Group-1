@@ -9,6 +9,11 @@
 #define MOTOR_THREE_SPEED 10
 #define NUM_MOTORS 3
 
+#define SOLENOID 11
+#define SOLENOID_DELAY 500 // 500 millis
+
+#define IR_SENSOR 12
+
 #define SPEED_MULTIPLIER 1
 
 struct Motor {
@@ -40,10 +45,22 @@ void moveInDirection(struct Motor motors[NUM_MOTORS], double speed, double angle
   }
 }
 
+void enableSolenoid() {
+  digitalWrite(SOLENOID, 1);
+  timeout0.timeOut(SOLENOID_DELAY, disableSolenoid);
+
+}
+
+void disableSolenoid(int pin) {
+  digitalWrite(SOLENOID, 0);
+}
+
 
 struct Motor motorOne;
 struct Motor motorTwo;
 struct Motor motorThree;
+
+TimeOut timeout0;
 
 void setup() {
   pinMode(MOTOR_ONE_POSITIVE, OUTPUT);
@@ -55,6 +72,8 @@ void setup() {
   pinMode(MOTOR_THREE_POSITIVE, OUTPUT);
   pinMode(MOTOR_THREE_NEGATIVE, OUTPUT);
   pinMode(MOTOR_THREE_SPEED, OUTPUT);
+  pinMode(SOLENOID, OUTPUT);
+  pinMode(IR_SENSOR, INPUT);
 
   motorOne.positivePin = MOTOR_ONE_POSITIVE;
   motorOne.negativePin = MOTOR_ONE_NEGATIVE;
@@ -73,6 +92,8 @@ void setup() {
 }
 
 void loop() {
+  timeout0.handler();
+
   struct Motor motors[NUM_MOTORS];
   motors[0] = motorOne;
   motors[1] = motorTwo;
