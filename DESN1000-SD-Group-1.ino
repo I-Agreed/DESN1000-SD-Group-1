@@ -30,7 +30,12 @@ enum State {
   GOTO_BALL,
   FIND_GOAL,
   GOTO_GOAL,
-  KICK
+  KICK,
+  END,
+
+  TEST_MOVEMENT,
+  TEST_KICK,
+  TEST_IR
 };
 
 struct Motor motorOne;
@@ -106,6 +111,10 @@ void setup() {
   motorThree.negativePin = MOTOR_THREE_NEGATIVE;
   motorThree.speedPin = MOTOR_THREE_SPEED;
   motorThree.angle = -PI/6;
+
+  Serial.begin(9600);
+
+  state = TEST_MOVEMENT; // change initial state here
 }
 
 void loop() {
@@ -131,6 +140,21 @@ void loop() {
 
     case KICK:
       enableSolenoid();
+      break;
+    
+    case TEST_MOVEMENT:
+      moveInDirection(motors, 1, 0);
+      break;
+    
+    case TEST_KICK:
+      enableSolenoid();
+      state = END;
+    
+    case TEST_IR:
+      int ir = digitalRead(IR_SENSOR);
+      Serial.print("IR Sensor: ");
+      Serial.println(ir);
+      delay(100);
       break;
 
     default:
