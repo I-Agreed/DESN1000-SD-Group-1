@@ -1,12 +1,12 @@
-#define MOTOR_ONE_POSITIVE 1
-#define MOTOR_ONE_NEGATIVE 2
+#define MOTOR_ONE_POSITIVE 2
+#define MOTOR_ONE_NEGATIVE 4
 #define MOTOR_ONE_SPEED 3
-#define MOTOR_TWO_POSITIVE 4
-#define MOTOR_TWO_NEGATIVE 5
-#define MOTOR_TWO_SPEED 6
-#define MOTOR_THREE_POSITIVE 7
-#define MOTOR_THREE_NEGATIVE 8
-#define MOTOR_THREE_SPEED 9
+#define MOTOR_TWO_POSITIVE 5
+#define MOTOR_TWO_NEGATIVE 6
+#define MOTOR_TWO_SPEED 7
+#define MOTOR_THREE_POSITIVE 8
+#define MOTOR_THREE_NEGATIVE 9
+#define MOTOR_THREE_SPEED 10
 #define NUM_MOTORS 3
 
 #define SPEED_MULTIPLIER 1
@@ -16,7 +16,7 @@ struct Motor {
   int negativePin;
   int speedPin;
   double angle; // angle in radians, clockwise from the front
-}
+};
 
 void setMotor(struct Motor motor, double speed) {
 
@@ -40,12 +40,43 @@ void moveInDirection(struct Motor motors[NUM_MOTORS], double speed, double angle
   }
 }
 
-void setup() {
-  // put your setup code here, to run once:
 
+struct Motor motorOne;
+struct Motor motorTwo;
+struct Motor motorThree;
+
+void setup() {
+  pinMode(MOTOR_ONE_POSITIVE, OUTPUT);
+  pinMode(MOTOR_ONE_NEGATIVE, OUTPUT);
+  pinMode(MOTOR_ONE_SPEED, OUTPUT);
+  pinMode(MOTOR_TWO_POSITIVE, OUTPUT);
+  pinMode(MOTOR_TWO_NEGATIVE, OUTPUT);
+  pinMode(MOTOR_TWO_SPEED, OUTPUT);
+  pinMode(MOTOR_THREE_POSITIVE, OUTPUT);
+  pinMode(MOTOR_THREE_NEGATIVE, OUTPUT);
+  pinMode(MOTOR_THREE_SPEED, OUTPUT);
+
+  motorOne.positivePin = MOTOR_ONE_POSITIVE;
+  motorOne.negativePin = MOTOR_ONE_NEGATIVE;
+  motorOne.speedPin = MOTOR_ONE_SPEED;
+  motorOne.angle = TWO_PI/3;
+
+  motorTwo.positivePin = MOTOR_TWO_POSITIVE;
+  motorTwo.negativePin = MOTOR_TWO_NEGATIVE;
+  motorTwo.speedPin = MOTOR_TWO_SPEED;
+  motorTwo.angle = TWO_PI/3 * 2;
+
+  motorThree.positivePin = MOTOR_THREE_POSITIVE;
+  motorThree.negativePin = MOTOR_THREE_NEGATIVE;
+  motorThree.speedPin = MOTOR_THREE_SPEED;
+  motorThree.angle = TWO_PI;
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  struct Motor motors[NUM_MOTORS];
+  motors[0] = motorOne;
+  motors[1] = motorTwo;
+  motors[2] = motorThree;
+
 
 }
