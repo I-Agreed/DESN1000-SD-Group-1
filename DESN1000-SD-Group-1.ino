@@ -1,4 +1,5 @@
 #include <TimeOut.h>
+#include <Pixy2.h>
 
 #define MOTOR_ONE_POSITIVE 2
 #define MOTOR_ONE_NEGATIVE 4
@@ -17,6 +18,13 @@
 #define IR_SENSOR 12
 
 #define SPEED_MULTIPLIER 1
+
+#define GOAL_SIGNATURE 1
+#define BALL_SIGNATURE 2
+
+#define PIXY_MAX_X 316
+#define PIXY_MAX_Y 208
+#define FIND_ACCEPT_ERROR 15
 
 struct Motor {
   int positivePin;
@@ -42,8 +50,10 @@ struct Motor motorOne;
 struct Motor motorTwo;
 struct Motor motorThree;
 
+Pixy2 pixy;
 TimeOut timeout0;
 enum State state;
+struct Motor motors[NUM_MOTORS];
 
 void setMotor(struct Motor motor, double speed) {
 
@@ -83,6 +93,72 @@ void turnInDirection(struct Motor motors[NUM_MOTORS], double speed) {
   }
 }
 
+int getSignatureIndex(int signature) { // returns -1 if not found
+  pixy.ccc.getBlocks();
+  for (int i = 0; i < pixy.ccc.numBlocks; i++) {
+    if (pixy.ccc.blocks[i].m_signature == signature) {
+      return i;
+      break;
+    }
+  }
+}
+
+void findBall() {
+  int index = getSignatureIndex(BALL_SIGNATURE);
+
+  if (index == -1) {
+    turnInDirection(motors, 1);
+    return;
+  }
+  // ball is found
+  int x = pixy.ccc.blocks[index].m_x;
+  int y = pixy.ccc.blocks[index].m_y;
+
+  int midPoint = PIXY_MAX_X/2;
+
+  if (midPoint - FIND_ACCEPT_ERROR > x) {
+    // ball is to the left
+    turnInDirection(motors, -0.5);
+    return;
+  } else if (x > midPoint + FIND_ACCEPT_ERROR) {
+    // ball is to the right
+    turnInDirection(motors, 0.5);
+    return;
+  }
+
+  // ball is in the centre
+  state = GOTO_BALL;
+  return;
+}
+
+void findGoal() {
+  int index = getSignatureIndex(GOAL_SIGNATURE);
+
+  if (index == -1) {
+    turnInDirection(motors, 1);
+    return;
+  }
+  // goal is found
+  int x = pixy.ccc.blocks[index].m_x;
+  int y = pixy.ccc.blocks[index].m_y;
+
+  int midPoint = PIXY_MAX_X/2;
+
+  if (midPoint - FIND_ACCEPT_ERROR > x) {
+    // goal is to the left
+    turnInDirection(motors, -0.5);
+    return;
+  } else if (x > midPoint + FIND_ACCEPT_ERROR) {
+    // goal is to the right
+    turnInDirection(motors, 0.5);
+    return;
+  }
+
+  // goal is in the centre
+  state = GOTO_GOAL;
+  return;
+}
+
 
 void setup() {
   pinMode(MOTOR_ONE_POSITIVE, OUTPUT);
@@ -112,6 +188,10 @@ void setup() {
   motorThree.speedPin = MOTOR_THREE_SPEED;
   motorThree.angle = -PI/6;
 
+  motors[0] = motorOne;
+  motors[1] = motorTwo;
+  motors[2] = motorThree;
+
   Serial.begin(9600);
 
   state = TEST_MOVEMENT; // change initial state here
@@ -120,10 +200,6 @@ void setup() {
 void loop() {
   timeout0.handler();
 
-  struct Motor motors[NUM_MOTORS];
-  motors[0] = motorOne;
-  motors[1] = motorTwo;
-  motors[2] = motorThree;
 
   switch (state) {
     case FIND_BALL:
