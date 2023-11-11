@@ -1,15 +1,16 @@
 #include <TimeOut.h>
 #include <Pixy2.h>
+#include <Pixy2CCC.h>
 
-#define MOTOR_ONE_POSITIVE 2
-#define MOTOR_ONE_NEGATIVE 4
-#define MOTOR_ONE_SPEED 3
-#define MOTOR_TWO_POSITIVE 5
-#define MOTOR_TWO_NEGATIVE 6
-#define MOTOR_TWO_SPEED 7
-#define MOTOR_THREE_POSITIVE 8
-#define MOTOR_THREE_NEGATIVE 9
-#define MOTOR_THREE_SPEED 10
+#define MOTOR_TWO_POSITIVE 2
+#define MOTOR_TWO_NEGATIVE 4
+#define MOTOR_TWO_SPEED 3
+#define MOTOR_THREE_POSITIVE 6
+#define MOTOR_THREE_NEGATIVE 7
+#define MOTOR_THREE_SPEED 5
+#define MOTOR_ONE_POSITIVE 9
+#define MOTOR_ONE_NEGATIVE 8
+#define MOTOR_ONE_SPEED 10
 #define NUM_MOTORS 3
 
 #define SOLENOID 11
@@ -18,13 +19,6 @@
 #define IR_SENSOR 12
 
 #define SPEED_MULTIPLIER 1
-
-#define GOAL_SIGNATURE 1
-#define BALL_SIGNATURE 2
-
-#define PIXY_MAX_X 316
-#define PIXY_MAX_Y 208
-#define FIND_ACCEPT_ERROR 15
 
 struct Motor {
   int positivePin;
@@ -50,10 +44,10 @@ struct Motor motorOne;
 struct Motor motorTwo;
 struct Motor motorThree;
 
-Pixy2 pixy;
 TimeOut timeout0;
 enum State state;
-struct Motor motors[NUM_MOTORS];
+
+Pixy2 pixy;
 
 void setMotor(struct Motor motor, double speed) {
 
@@ -74,6 +68,10 @@ void moveInDirection(struct Motor motors[NUM_MOTORS], double speed, double angle
     double motorAngle = motors[i].angle - angle - HALF_PI;
     double motorSpeed = speed * cos(motorAngle);
     setMotor(motors[i], motorSpeed);
+    // Serial.print("Motor ");
+    // Serial.print(i+1);
+    // Serial.print(": ");
+    // Serial.println(motorSpeed);
   }
 }
 
@@ -93,72 +91,6 @@ void turnInDirection(struct Motor motors[NUM_MOTORS], double speed) {
   }
 }
 
-int getSignatureIndex(int signature) { // returns -1 if not found
-  pixy.ccc.getBlocks();
-  for (int i = 0; i < pixy.ccc.numBlocks; i++) {
-    if (pixy.ccc.blocks[i].m_signature == signature) {
-      return i;
-      break;
-    }
-  }
-}
-
-void findBall() {
-  int index = getSignatureIndex(BALL_SIGNATURE);
-
-  if (index == -1) {
-    turnInDirection(motors, 1);
-    return;
-  }
-  // ball is found
-  int x = pixy.ccc.blocks[index].m_x;
-  int y = pixy.ccc.blocks[index].m_y;
-
-  int midPoint = PIXY_MAX_X/2;
-
-  if (midPoint - FIND_ACCEPT_ERROR > x) {
-    // ball is to the left
-    turnInDirection(motors, -0.5);
-    return;
-  } else if (x > midPoint + FIND_ACCEPT_ERROR) {
-    // ball is to the right
-    turnInDirection(motors, 0.5);
-    return;
-  }
-
-  // ball is in the centre
-  state = GOTO_BALL;
-  return;
-}
-
-void findGoal() {
-  int index = getSignatureIndex(GOAL_SIGNATURE);
-
-  if (index == -1) {
-    turnInDirection(motors, 1);
-    return;
-  }
-  // goal is found
-  int x = pixy.ccc.blocks[index].m_x;
-  int y = pixy.ccc.blocks[index].m_y;
-
-  int midPoint = PIXY_MAX_X/2;
-
-  if (midPoint - FIND_ACCEPT_ERROR > x) {
-    // goal is to the left
-    turnInDirection(motors, -0.5);
-    return;
-  } else if (x > midPoint + FIND_ACCEPT_ERROR) {
-    // goal is to the right
-    turnInDirection(motors, 0.5);
-    return;
-  }
-
-  // goal is in the centre
-  state = GOTO_GOAL;
-  return;
-}
-
 
 void setup() {
   pinMode(MOTOR_ONE_POSITIVE, OUTPUT);
@@ -172,11 +104,12 @@ void setup() {
   pinMode(MOTOR_THREE_SPEED, OUTPUT);
   pinMode(SOLENOID, OUTPUT);
   pinMode(IR_SENSOR, INPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
 
   motorOne.positivePin = MOTOR_ONE_POSITIVE;
   motorOne.negativePin = MOTOR_ONE_NEGATIVE;
   motorOne.speedPin = MOTOR_ONE_SPEED;
-  motorOne.angle = PI/6;
+  motorOne.angle = -PI/6;
 
   motorTwo.positivePin = MOTOR_TWO_POSITIVE;
   motorTwo.negativePin = MOTOR_TWO_NEGATIVE;
@@ -186,32 +119,67 @@ void setup() {
   motorThree.positivePin = MOTOR_THREE_POSITIVE;
   motorThree.negativePin = MOTOR_THREE_NEGATIVE;
   motorThree.speedPin = MOTOR_THREE_SPEED;
-  motorThree.angle = -PI/6;
-
-  motors[0] = motorOne;
-  motors[1] = motorTwo;
-  motors[2] = motorThree;
+  motorThree.angle = PI/6;
 
   Serial.begin(9600);
+  pixy.init();
 
-  state = TEST_MOVEMENT; // change initial state here
+  state = GOTO_BALL; //change initial state here
 }
 
 void loop() {
   timeout0.handler();
 
+  struct Motor motors[NUM_MOTORS];
+  motors[0] = motorOne;
+  motors[1] = motorTwo;
+  motors[2] = motorThree;
+
+  pixy.ccc.getBlocks();
 
   switch (state) {
     case FIND_BALL:
       break;
 
     case GOTO_BALL:
+    if (pixy.ccc.numBlocks) {
+    Serial.print("Pixy detects number of blocks: ");
+    Serial.println(pixy.ccc.numBlocks);
+
+      for (int i = 0; i < pixy.ccc.numBlocks; i++) {
+        if (pixy.ccc.blocks[i].m_signature == 1) { // check if signature is tennis ball
+          while (digitalRead(IR_SENSOR == 0)) {
+            if (pixy.ccc.blocks[i].m_x <= 105) {
+              Serial.println(pixy.ccc.blocks[i].m_x);
+              moveInDirection(motors, 1, -PI/6);
+            }
+            else if (pixy.ccc.blocks[i].m_x >= 210) {
+              Serial.println("Ball right");
+              moveInDirection(motors, 1, PI/6);
+            }
+            else {
+              Serial.println("Ball");
+              moveInDirection(motors, 1, 0);
+            }
+          }
+        }
+      }
+    }
       break;
 
     case FIND_GOAL:
       break;
 
     case GOTO_GOAL:
+    for (int i = 0; i < pixy.ccc.numBlocks; i++) {
+      while (
+        pixy.ccc.blocks[i].m_signature == 2
+        && digitalRead(IR_SENSOR == 1)
+        && pixy.ccc.blocks[i].m_width > 150 // approximately 50% of screen
+      ) {
+        moveInDirection(motors, 1, 0);
+      }
+    }
       break;
 
     case KICK:
@@ -223,9 +191,15 @@ void loop() {
       break;
     
     case TEST_KICK:
-      enableSolenoid();
-      state = END;
-    
+      digitalWrite(SOLENOID, 1);
+      digitalWrite(LED_BUILTIN, 1);
+      delay(5000);
+      digitalWrite(SOLENOID, 0);
+      digitalWrite(LED_BUILTIN, 0);
+      delay(5000);
+      //enableSolenoid();
+      //state = END;
+      break;
     case TEST_IR:
       int ir = digitalRead(IR_SENSOR);
       Serial.print("IR Sensor: ");
