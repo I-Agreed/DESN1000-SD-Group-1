@@ -1,15 +1,16 @@
 #include <TimeOut.h>
 #include <Pixy2.h>
+#include <Pixy2CCC.h>
 
-#define MOTOR_ONE_POSITIVE 2
-#define MOTOR_ONE_NEGATIVE 4
-#define MOTOR_ONE_SPEED 3
-#define MOTOR_TWO_POSITIVE 5
-#define MOTOR_TWO_NEGATIVE 6
-#define MOTOR_TWO_SPEED 7
-#define MOTOR_THREE_POSITIVE 8
-#define MOTOR_THREE_NEGATIVE 9
-#define MOTOR_THREE_SPEED 10
+#define MOTOR_TWO_POSITIVE 2
+#define MOTOR_TWO_NEGATIVE 4
+#define MOTOR_TWO_SPEED 3
+#define MOTOR_THREE_POSITIVE 6
+#define MOTOR_THREE_NEGATIVE 7
+#define MOTOR_THREE_SPEED 5
+#define MOTOR_ONE_POSITIVE 9
+#define MOTOR_ONE_NEGATIVE 8
+#define MOTOR_ONE_SPEED 10
 #define NUM_MOTORS 3
 
 #define SOLENOID 11
@@ -127,7 +128,7 @@ void findBall() {
   }
 
   // ball is in the centre
-  state = GOTO_BALL;
+  state = TEST_MOVEMENT;
   return;
 }
 
@@ -172,11 +173,12 @@ void setup() {
   pinMode(MOTOR_THREE_SPEED, OUTPUT);
   pinMode(SOLENOID, OUTPUT);
   pinMode(IR_SENSOR, INPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
 
   motorOne.positivePin = MOTOR_ONE_POSITIVE;
   motorOne.negativePin = MOTOR_ONE_NEGATIVE;
   motorOne.speedPin = MOTOR_ONE_SPEED;
-  motorOne.angle = PI/6;
+  motorOne.angle = -PI/6;
 
   motorTwo.positivePin = MOTOR_TWO_POSITIVE;
   motorTwo.negativePin = MOTOR_TWO_NEGATIVE;
@@ -186,13 +188,14 @@ void setup() {
   motorThree.positivePin = MOTOR_THREE_POSITIVE;
   motorThree.negativePin = MOTOR_THREE_NEGATIVE;
   motorThree.speedPin = MOTOR_THREE_SPEED;
-  motorThree.angle = -PI/6;
+  motorThree.angle = PI/6;
 
   motors[0] = motorOne;
   motors[1] = motorTwo;
   motors[2] = motorThree;
 
   Serial.begin(9600);
+  pixy.init();
 
   state = TEST_MOVEMENT; // change initial state here
 }
@@ -203,15 +206,47 @@ void loop() {
 
   switch (state) {
     case FIND_BALL:
-      break;
+      findBall();
 
     case GOTO_BALL:
-      break;
+      if (pixy.ccc.numBlocks) {
+        Serial.print("Pixy detects number of blocks: ");
+        Serial.println(pixy.ccc.numBlocks);
+
+          for (int i = 0; i < pixy.ccc.numBlocks; i++) {
+            if (pixy.ccc.blocks[i].m_signature == 1) { // check if signature is tennis ball
+              while (digitalRead(IR_SENSOR == 0)) {
+                if (pixy.ccc.blocks[i].m_x <= 105) {
+                  Serial.println(pixy.ccc.blocks[i].m_x);
+                  moveInDirection(motors, 1, -PI/6);
+                }
+                else if (pixy.ccc.blocks[i].m_x >= 210) {
+                  Serial.println("Ball right");
+                  moveInDirection(motors, 1, PI/6);
+                }
+                else {
+                  Serial.println("Ball");
+                  moveInDirection(motors, 1, 0);
+                }
+              }
+            }
+          }
+        }
+        break;
 
     case FIND_GOAL:
-      break;
+      findGoal();
 
     case GOTO_GOAL:
+      for (int i = 0; i < pixy.ccc.numBlocks; i++) {
+        while (
+          pixy.ccc.blocks[i].m_signature == 2
+          && digitalRead(IR_SENSOR == 1)
+          && pixy.ccc.blocks[i].m_width > 150 // approximately 50% of screen
+        ) {
+          moveInDirection(motors, 1, 0);
+        }
+      }
       break;
 
     case KICK:
