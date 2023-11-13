@@ -1,4 +1,3 @@
-#include <TimeOut.h>
 #include <Pixy2.h>
 #include <Pixy2CCC.h>
 
@@ -20,8 +19,8 @@
 
 #define SPEED_MULTIPLIER 1
 
-#define GOAL_SIGNATURE 1
-#define BALL_SIGNATURE 2
+#define GOAL_SIGNATURE 2
+#define BALL_SIGNATURE 1
 
 #define PIXY_MAX_X 316
 #define PIXY_MAX_Y 208
@@ -52,7 +51,6 @@ struct Motor motorTwo;
 struct Motor motorThree;
 
 Pixy2 pixy;
-TimeOut timeout0;
 enum State state;
 struct Motor motors[NUM_MOTORS];
 
@@ -199,16 +197,16 @@ void setup() {
   Serial.begin(9600);
   pixy.init();
 
-  state = TEST_KICK; // change initial state here
+  state = FIND_BALL; // change initial state here
 }
 
 void loop() {
-  timeout0.handler();
 
   switch (state) {
     case FIND_BALL:
       Serial.println((int) state);
       findBall();
+      break;
 
     case GOTO_BALL:
       Serial.println((int) state);
