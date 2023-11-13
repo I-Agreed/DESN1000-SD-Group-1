@@ -13,10 +13,10 @@
 #define MOTOR_ONE_SPEED 10
 #define NUM_MOTORS 3
 
-#define SOLENOID 11
+#define SOLENOID 12
 #define SOLENOID_DELAY 500 // 500 millis
 
-#define IR_SENSOR 12
+#define IR_SENSOR 11
 
 #define SPEED_MULTIPLIER 1
 
@@ -79,13 +79,13 @@ void moveInDirection(struct Motor motors[NUM_MOTORS], double speed, double angle
 }
 
 void enableSolenoid() {
-  digitalWrite(SOLENOID, 1);
-  timeout0.timeOut(SOLENOID_DELAY, disableSolenoid);
+  Serial.println("SOLENOID ON");
+  digitalWrite(SOLENOID, HIGH);
+  delay(SOLENOID_DELAY);
+  Serial.println("SOLENOID OFF");
+  
+  digitalWrite(SOLENOID, LOW);
 
-}
-
-void disableSolenoid() {
-  digitalWrite(SOLENOID, 0);
 }
 
 void turnInDirection(struct Motor motors[NUM_MOTORS], double speed) {
@@ -128,7 +128,8 @@ void findBall() {
   }
 
   // ball is in the centre
-  state = TEST_MOVEMENT;
+  state = GOTO_BALL;
+  moveInDirection(motors, 0, 0);
   return;
 }
 
@@ -157,6 +158,7 @@ void findGoal() {
 
   // goal is in the centre
   state = GOTO_GOAL;
+  moveInDirection(motors, 0, 0);
   return;
 }
 
@@ -197,47 +199,48 @@ void setup() {
   Serial.begin(9600);
   pixy.init();
 
-  state = TEST_MOVEMENT; // change initial state here
+  state = TEST_KICK; // change initial state here
 }
 
 void loop() {
   timeout0.handler();
 
-
   switch (state) {
     case FIND_BALL:
+      Serial.println((int) state);
       findBall();
 
     case GOTO_BALL:
+      Serial.println((int) state);
       if (pixy.ccc.numBlocks) {
-        Serial.print("Pixy detects number of blocks: ");
-        Serial.println(pixy.ccc.numBlocks);
-
+        //Serial.print("Pixy detects number of blocks: ");
+        //Serial.println(pixy.ccc.numBlocks);
+        while (digitalRead(IR_SENSOR) == 1) {
+          Serial.println("GOING TO BALL");
+          pixy.ccc.getBlocks();
           for (int i = 0; i < pixy.ccc.numBlocks; i++) {
             if (pixy.ccc.blocks[i].m_signature == 1) { // check if signature is tennis ball
-              while (digitalRead(IR_SENSOR == 0)) {
-                if (pixy.ccc.blocks[i].m_x <= 105) {
-                  Serial.println(pixy.ccc.blocks[i].m_x);
-                  moveInDirection(motors, 1, -PI/6);
-                }
-                else if (pixy.ccc.blocks[i].m_x >= 210) {
-                  Serial.println("Ball right");
-                  moveInDirection(motors, 1, PI/6);
-                }
-                else {
-                  Serial.println("Ball");
-                  moveInDirection(motors, 1, 0);
-                }
+              if (pixy.ccc.blocks[i].m_x <= 105) {
+                moveInDirection(motors, 1, -PI/6);
+              } else if (pixy.ccc.blocks[i].m_x >= 210) {
+                moveInDirection(motors, 1, PI/6);
+              } else {
+                moveInDirection(motors, 1, 0);
               }
             }
           }
         }
-        break;
+      }
+      moveInDirection(motors, 0, 0);
+      state = KICK;
+      break;
 
     case FIND_GOAL:
+      Serial.println((int) state);
       findGoal();
 
     case GOTO_GOAL:
+      Serial.println((int) state);
       for (int i = 0; i < pixy.ccc.numBlocks; i++) {
         while (
           pixy.ccc.blocks[i].m_signature == 2
@@ -247,10 +250,13 @@ void loop() {
           moveInDirection(motors, 1, 0);
         }
       }
+      moveInDirection(motors, 0, 0);
       break;
 
     case KICK:
       enableSolenoid();
+      Serial.println("KICKED");
+      state = END;
       break;
     
     case TEST_MOVEMENT:
@@ -260,12 +266,18 @@ void loop() {
     case TEST_KICK:
       enableSolenoid();
       state = END;
+      break;
     
     case TEST_IR:
       int ir = digitalRead(IR_SENSOR);
       Serial.print("IR Sensor: ");
       Serial.println(ir);
       delay(100);
+      break;
+    
+    case END:
+      Serial.println("END");
+      while (1) {}
       break;
 
     default:
